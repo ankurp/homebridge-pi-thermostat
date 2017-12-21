@@ -1,0 +1,18 @@
+{
+  "name": "homebridge-pi-thermostat",
+  "version": "1.0.0",
+  "description": "Hombridge plugin for thermostat",
+  "main": "index.js",
+  "engines": {
+    "node": ">=6.12.2",
+    "homebridge": ">=0.4.33"
+  },
+  "keywords": [
+    "homebridge-plugin"
+  ],
+  "author": "Ankur Patel <ankur.patel@ymail.com> (https://www.encoredevlabs.com)",
+  "license": "ISC",
+  "dependencies": {
+    "rpio": "^0.9.20"
+  }
+}
