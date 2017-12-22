@@ -1,6 +1,6 @@
 {
   "name": "homebridge-pi-thermostat",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Hombridge plugin for thermostat",
   "main": "index.js",
   "engines": {
@@ -8,8 +8,8 @@
     "homebridge": ">=0.4.33"
   },
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/ankurp/homebridge-pi-thermostat.git"
+    "type": "git",
+    "url": "https://github.com/ankurp/homebridge-pi-thermostat.git"
   },
   "keywords": [
     "homebridge-plugin",
