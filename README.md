@@ -1,0 +1,1 @@
+# Homebridge Pi Thermostat Plugin
