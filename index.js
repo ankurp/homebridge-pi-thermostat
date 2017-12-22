@@ -149,6 +149,7 @@ class Thermostat {
         this.turnOffSystem();
       }
     } else {
+      this.log('CLEARING Turn on instruction...');
       if (this.startSystemTimer) {
         clearTimeout(this.startSystemTimer);
         this.startSystemTimer = null;  
