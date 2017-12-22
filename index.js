@@ -12,10 +12,9 @@ module.exports = function(homebridge) {
 class Thermostat {
   constructor(log, config) {
     this.log = log;
-    this.maxTemp = 30;
-    this.minTemp = 0;
     this.name = config.name;
-
+    this.maxTemperature = config.maxTemperature || 30;
+    this.minTemperature = config.minTemperature || 0;
     this.fanRelayPin = config.fanRelayPin || 26;
     this.heatRelayPin = config.heatRelayPin || 27;
     this.coolRelayPin = config.coolRelayPin || 28;
@@ -195,8 +194,8 @@ class Thermostat {
     this.service
       .getCharacteristic(Characteristic.CurrentTemperature)
       .setProps({
-        minValue: this.minTemp,
-        maxValue: this.maxTemp,
+        minValue: this.minTemperature,
+        maxValue: this.maxTemperature,
         minStep: 1
       })
       .on('get', callback => {
@@ -212,8 +211,8 @@ class Thermostat {
     this.service
       .getCharacteristic(Characteristic.TargetTemperature)
       .setProps({
-        minValue: this.minTemp,
-        maxValue: this.maxTemp,
+        minValue: this.minTemperature,
+        maxValue: this.maxTemperature,
         minStep: 1
       })
       .on('get', callback => {
