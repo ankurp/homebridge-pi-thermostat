@@ -10,10 +10,21 @@
   "keywords": [
     "homebridge-plugin"
   ],
+  "scripts": {
+    "lint": "eslint ."
+  },
   "author": "Ankur Patel <ankur.patel@ymail.com> (https://www.encoredevlabs.com)",
   "license": "ISC",
   "dependencies": {
     "node-dht-sensor": "0.0.33",
     "rpio": "^0.9.20"
+  },
+  "devDependencies": {
+    "eslint": "^4.13.1",
+    "eslint-config-standard": "^11.0.0-beta.0",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-node": "^5.2.1",
+    "eslint-plugin-promise": "^3.6.0",
+    "eslint-plugin-standard": "^3.0.1"
   }
 }
