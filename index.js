@@ -20,6 +20,7 @@ class Thermostat {
     this.coolRelayPin = config.coolRelayPin || 28;
     this.temperatureSensorPin = config.temperatureSensorPin || 4;
     this.minimumOnOffTime = config.minimumOnOffTime || 60000; // In milliseconds
+    this.minimumOffOnDelay = config.minimumOffOnDelay || 15000; // In milliseconds
     this.temperatureCheckInterval = config.temperatureCheckInterval || 10000; // In milliseconds
 
     HeatingCoolingStateToRelayPin = {
@@ -87,28 +88,34 @@ class Thermostat {
 
   turnOnSystem(systemToTurnOn) {
     if (this.currentHeatingCoolingState === Characteristic.CurrentHeatingCoolingState.OFF) {
-      this.log(`START ${systemToTurnOn}`);
-      rpio.write(HeatingCoolingStateToRelayPin[systemToTurnOn], rpio.HIGH);
-      this.systemStartTime = new Date();
-      this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, systemToTurnOn);
+      if (!this.startSystemTimer) {
+        const waitTime = Math.floor(this.minimumOffOnDelay / 1000);
+        this.log(`STARTING ${systemToTurnOn} in ${waitTime} second(s)`);
+        this.startSystemTimer = setTimeout(() => {
+          this.log(`START ${systemToTurnOn}`);
+          rpio.write(HeatingCoolingStateToRelayPin[systemToTurnOn], rpio.HIGH);
+          this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, systemToTurnOn);  
+          this.startSystemTimer = null;
+        }, this.minimumOffOnDelay);  
+      } else {
+        this.log(`STARTING ${systemToTurnOn} soon...`);
+      }
     } else if (this.currentHeatingCoolingState !== systemToTurnOn) {
       this.turnOffSystem();
     } else if (this.currentHeatingCoolingState === systemToTurnOn && this.stopSystemTimer) {
-      this.log(`RESUMING ${systemToTurnOn}`);
+      this.log(`RESUMING ${systemToTurnOn} and Turn off instruction cleared`);
       clearTimeout(this.stopSystemTimer);
       this.stopSystemTimer = null;
     }
   }
   
   turnOffSystem() {
-    const timeSinceSystemStarted = (new Date() - this.systemStartTime);
-    const waitTime = Math.floor((this.minimumOnOffTime - timeSinceSystemStarted) / 1000);
+    const waitTime = Math.floor(this.minimumOnOffTime / 1000);
     if (!this.stopSystemTimer) {
       this.log(`STOPPING ${this.currentlyRunning} in ${waitTime} second(s)`);
       this.stopSystemTimer = setTimeout(() => {
         this.log(`STOP ${this.currentlyRunning}`);
         rpio.write(HeatingCoolingStateToRelayPin[this.currentHeatingCoolingState], rpio.LOW);
-        this.systemStartTime = null;
         this.stopSystemTimer = null;
         this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, Characteristic.CurrentHeatingCoolingState.OFF);
       }, waitTime * 1000);
@@ -136,6 +143,11 @@ class Thermostat {
         this.turnOnSystem(Characteristic.CurrentHeatingCoolingState.COOL);
       } else {
         this.turnOffSystem();
+      }
+    } else {
+      if (this.startSystemTimer) {
+        clearTimeout(this.startSystemTimer);
+        this.startSystemTimer = null;  
       }
     }
   }
