@@ -20,6 +20,7 @@ class Thermostat {
     this.coolRelayPin = config.coolRelayPin || 28;
     this.temperatureSensorPin = config.temperatureSensorPin || 4;
     this.minimumOnOffTime = config.minimumOnOffTime || 60000; // In milliseconds
+    this.minimumOffOnDelay = config.minimumOffOnDelay || 15000; // In milliseconds
     this.temperatureCheckInterval = config.temperatureCheckInterval || 10000; // In milliseconds
 
     HeatingCoolingStateToRelayPin = {
@@ -60,19 +61,8 @@ class Thermostat {
     this.setupTemperatureCheckInterval();
   }
 
-  identify(callback) {
-    this.log('Identify requested!');
-    callback(null);
-  }
-
   get currentlyRunning() {
-    if (this.currentHeatingCoolingState === Characteristic.CurrentHeatingCoolingState.HEAT) {
-      return 'Heat';
-    } else if (this.currentHeatingCoolingState === Characteristic.CurrentHeatingCoolingState.COOL) {
-      return 'Cool';
-    } else {
-      return 'Off';
-    }
+    return this.systemStateName(this.currentHeatingCoolingState);
   }
 
   get shouldTurnOnHeating() {
@@ -85,35 +75,66 @@ class Thermostat {
       || (this.targetHeatingCoolingState === Characteristic.TargetHeatingCoolingState.AUTO && this.currentTemperature > this.coolingThresholdTemperature);
   }
 
+  identify(callback) {
+    this.log('Identify requested!');
+    callback(null);
+  }
+
+  systemStateName(heatingCoolingState) {
+    if (heatingCoolingState === Characteristic.CurrentHeatingCoolingState.HEAT) {
+      return 'Heat';
+    } else if (heatingCoolingState === Characteristic.CurrentHeatingCoolingState.COOL) {
+      return 'Cool';
+    } else {
+      return 'Off';
+    }
+  }
+
+  clearTurnOnInstruction() {
+    this.log('CLEARING Turn On instruction');
+    clearTimeout(this.startSystemTimer);
+    this.startSystemTimer = null;
+  }
+
+  clearTurnOffInstruction() {
+    this.log('RESUMING Turn off instruction cleared');
+    clearTimeout(this.stopSystemTimer);
+    this.stopSystemTimer = null;
+  }
+
   turnOnSystem(systemToTurnOn) {
     if (this.currentHeatingCoolingState === Characteristic.CurrentHeatingCoolingState.OFF) {
-      this.log(`START ${systemToTurnOn}`);
-      rpio.write(HeatingCoolingStateToRelayPin[systemToTurnOn], rpio.HIGH);
-      this.systemStartTime = new Date();
-      this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, systemToTurnOn);
+      if (!this.startSystemTimer) {
+        const waitTime = Math.floor(this.minimumOffOnDelay / 1000);
+        this.log(`STARTING ${this.systemStateName(systemToTurnOn)} in ${waitTime} second(s)`);
+        this.startSystemTimer = setTimeout(() => {
+          this.log(`START ${this.systemStateName(systemToTurnOn)}`);
+          rpio.write(HeatingCoolingStateToRelayPin[systemToTurnOn], rpio.HIGH);
+          this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, systemToTurnOn);  
+          this.startSystemTimer = null;
+        }, this.minimumOffOnDelay);  
+      } else {
+        this.log(`STARTING ${this.systemStateName(systemToTurnOn)} soon...`);
+      }
     } else if (this.currentHeatingCoolingState !== systemToTurnOn) {
       this.turnOffSystem();
     } else if (this.currentHeatingCoolingState === systemToTurnOn && this.stopSystemTimer) {
-      this.log(`RESUMING ${systemToTurnOn}`);
-      clearTimeout(this.stopSystemTimer);
-      this.stopSystemTimer = null;
+      this.clearTurnOffInstruction();
     }
   }
   
   turnOffSystem() {
-    const timeSinceSystemStarted = (new Date() - this.systemStartTime);
-    const waitTime = Math.floor((this.minimumOnOffTime - timeSinceSystemStarted) / 1000);
+    const waitTime = Math.floor(this.minimumOnOffTime / 1000);
     if (!this.stopSystemTimer) {
       this.log(`STOPPING ${this.currentlyRunning} in ${waitTime} second(s)`);
       this.stopSystemTimer = setTimeout(() => {
         this.log(`STOP ${this.currentlyRunning}`);
         rpio.write(HeatingCoolingStateToRelayPin[this.currentHeatingCoolingState], rpio.LOW);
-        this.systemStartTime = null;
         this.stopSystemTimer = null;
         this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, Characteristic.CurrentHeatingCoolingState.OFF);
       }, waitTime * 1000);
     } else {
-      this.log(`INFO ${this.currentlyRunning} is in process of turning off in ${waitTime} second(s)`);
+      this.log(`STOPPING ${this.currentlyRunning} soon...`);
     }
   }
 
@@ -124,6 +145,8 @@ class Thermostat {
         this.turnOnSystem(Characteristic.CurrentHeatingCoolingState.HEAT);
       } else if (this.shouldTurnOnCooling) {
         this.turnOnSystem(Characteristic.CurrentHeatingCoolingState.COOL);
+      } else if (this.startSystemTimer) {
+        this.clearTurnOnInstruction();
       }
     } else if (this.currentHeatingCoolingState !== Characteristic.CurrentHeatingCoolingState.OFF
         && this.targetHeatingCoolingState === Characteristic.TargetHeatingCoolingState.OFF) {
@@ -137,6 +160,8 @@ class Thermostat {
       } else {
         this.turnOffSystem();
       }
+    } else if (this.startSystemTimer) {
+      this.clearTurnOnInstruction();
     }
   }
 
