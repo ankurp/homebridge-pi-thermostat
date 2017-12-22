@@ -1,18 +1,25 @@
 const rpio = require('rpio');
+const dhtSensor = require('node-dht-sensor');
 const FAN_RELAY_PIN = 10;
 const HEAT_RELAY_PIN = 11;
 const COOL_RELAY_PIN = 12;
-const WAIT_TIME = 60000;
+const TEMPERATURE_SENSOR_PIN = 4;
+const SYSTEM_WAIT_TIME = 1 * 60 * 1000; // In milliseconds
+const TEMPERATURE_CHECK_INTERVAL = 1000; // In milliseconds
 rpio.open(FAN_RELAY_PIN, rpio.OUTPUT, rpio.LOW);
 rpio.open(HEAT_RELAY_PIN, rpio.OUTPUT, rpio.LOW);
 rpio.open(COOL_RELAY_PIN, rpio.OUTPUT, rpio.LOW);
 
-let Service, Characteristic;
+let Service, Characteristic, HeatingCoolingStateToRelayPin;
 
 module.exports = function(homebridge) {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
   homebridge.registerAccessory('homebridge-pi-thermostat', 'Thermostat', Thermostat);
+  HeatingCoolingStateToRelayPin = {
+    [Characteristic.CurrentHeatingCoolingState.HEAT]: HEAT_RELAY_PIN,
+    [Characteristic.CurrentHeatingCoolingState.COOL]: COOL_RELAY_PIN
+  };
 };
 
 class Thermostat {
@@ -22,7 +29,7 @@ class Thermostat {
     this.minTemp = 0;
     this.name = config.name;
   
-    this.currentTemperature = 13.8889;
+    this.currentTemperature = 21;
     this.currentRelativeHumidity = 50;
     this.targetTemperature = 21;
 
@@ -48,10 +55,7 @@ class Thermostat {
   
     this.service = new Service.Thermostat(this.name);
 
-    setInterval(() => {
-      this.service.setCharacteristic(Characteristic.CurrentTemperature, this.currentTemperature);
-      this.service.setCharacteristic(Characteristic.CurrentRelativeHumidity, this.currentRelativeHumidity);
-    }, 1000);
+    this.setupTemperatureCheckInterval();
   }
 
 	identify(callback) {
@@ -59,61 +63,95 @@ class Thermostat {
 		callback(null);
   }
 
-  turnOnHeating() {
-    if (!this.stopHeatTimer && !this.stopCoolingTimer) {
-      this.log('START Heat');
-      rpio.write(HEAT_RELAY_PIN, rpio.HIGH);
-      this.heatStartTime = new Date();  
-    } else if (this.stopCoolingTimer) {
-      this.log('WARN Heat cannot start as cooling is in process of turning off.');
+  get currentlyRunning() {
+    if (this.currentHeatingCoolingState === Characteristic.CurrentHeatingCoolingState.HEAT) {
+      return 'Heat';
+    } else if (this.currentHeatingCoolingState === Characteristic.CurrentHeatingCoolingState.COOL) {
+      return 'Cool';
     } else {
-      this.log('WARN Heat is in process of turning off.');
+      return 'Off';
+    }
+  }
+
+  get shouldTurnOnHeating() {
+    return (this.targetHeatingCoolingState === Characteristic.TargetHeatingCoolingState.HEAT && this.currentTemperature < this.targetTemperature)
+      || (this.targetHeatingCoolingState === Characteristic.TargetHeatingCoolingState.AUTO && this.currentTemperature < this.heatingThresholdTemperature);
+  }
+
+  get shouldTurnOnCooling() {
+    return (this.targetHeatingCoolingState === Characteristic.TargetHeatingCoolingState.COOL && this.currentTemperature > this.targetTemperature)
+      || (this.targetHeatingCoolingState === Characteristic.TargetHeatingCoolingState.AUTO && this.currentTemperature > this.coolingThresholdTemperature);
+  }
+
+  turnOnSystem(systemToTurnOn) {
+    if (this.currentHeatingCoolingState === Characteristic.CurrentHeatingCoolingState.OFF) {
+      this.log(`START ${systemToTurnOn}`);
+      rpio.write(HeatingCoolingStateToRelayPin[systemToTurnOn], rpio.HIGH);
+      this.systemStartTime = new Date();
+      this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, systemToTurnOn);
+    } else if (this.currentHeatingCoolingState !== systemToTurnOn) {
+      this.turnOffSystem();
+    } else if (this.currentHeatingCoolingState === systemToTurnOn && this.stopSystemTimer) {
+      this.log(`RESUMING ${systemToTurnOn}`);
+      clearTimeout(this.stopSystemTimer);
+      this.stopSystemTimer = null;
     }
   }
   
-  turnOffHeating() {
-    const timeSinceHeatingStarted = (new Date() - this.heatStartTime);
-    const waitTime = Math.floor((WAIT_TIME - timeSinceHeatingStarted) / 1000);
-    if (!this.stopHeatTimer) {
-      this.log('STOPPING Heat...');
-      this.stopHeatTimer = setTimeout(() => {
-        this.log('STOP Heat');
-        rpio.write(HEAT_RELAY_PIN, rpio.LOW);
-        this.heatStartTime = null;
-        this.stopHeatTimer = null;
+  turnOffSystem() {
+    const timeSinceSystemStarted = (new Date() - this.systemStartTime);
+    const waitTime = Math.floor((SYSTEM_WAIT_TIME - timeSinceSystemStarted) / 1000);
+    if (!this.stopSystemTimer) {
+      this.log(`STOPPING ${this.currentlyRunning} in ${waitTime} second(s)`);
+      this.stopSystemTimer = setTimeout(() => {
+        this.log(`STOP ${this.currentlyRunning}`);
+        rpio.write(HeatingCoolingStateToRelayPin[this.currentHeatingCoolingState], rpio.LOW);
+        this.systemStartTime = null;
+        this.stopSystemTimer = null;
+        this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, Characteristic.CurrentHeatingCoolingState.OFF);
       }, waitTime * 1000);
     } else {
-      this.log(`WARN Heat is in process of turning off in ${waitTime} second(s)`);
+      this.log(`INFO ${this.currentlyRunning} is in process of turning off in ${waitTime} second(s)`);
     }
   }
-  
-  turnOnCooling() {
-    if (!this.stopCoolingTimer && !this.stopHeatTimer) {
-      this.log('START Cooling');
-      rpio.write(HEAT_RELAY_PIN, rpio.HIGH);
-      this.coolingStartTime = new Date();
-    } else if (this.stopHeatTimer) {
-      this.log('WARN Cooling cannot start as heating is in process of turning off.');
-    } else {
-      this.log('WARN Cooling is in process of turning off.');
+
+  updateSystem() {
+    if (this.currentHeatingCoolingState === Characteristic.CurrentHeatingCoolingState.OFF
+        && this.targetHeatingCoolingState !== Characteristic.TargetHeatingCoolingState.OFF) {
+      if (this.shouldTurnOnHeating) {
+        this.turnOnSystem(Characteristic.CurrentHeatingCoolingState.HEAT);
+      } else if (this.shouldTurnOnCooling) {
+        this.turnOnSystem(Characteristic.CurrentHeatingCoolingState.COOL);
+      }
+    } else if (this.currentHeatingCoolingState !== Characteristic.CurrentHeatingCoolingState.OFF
+        && this.targetHeatingCoolingState === Characteristic.TargetHeatingCoolingState.OFF) {
+      this.turnOffSystem();
+    } else if (this.currentHeatingCoolingState !== Characteristic.CurrentHeatingCoolingState.OFF
+              && this.targetHeatingCoolingState !== Characteristic.TargetHeatingCoolingState.OFF) {
+      if (this.shouldTurnOnHeating) {
+        this.turnOnSystem(Characteristic.CurrentHeatingCoolingState.HEAT);
+      } else if (this.shouldTurnOnCooling) {
+        this.turnOnSystem(Characteristic.CurrentHeatingCoolingState.COOL);
+      } else {
+        this.turnOffSystem();
+      }
     }
   }
-  
-  turnOffCooling() {
-    const timeSinceCoolingStarted = (new Date() - this.coolingStartTime);
-    const waitTime = Math.floor((WAIT_TIME - timeSinceCoolingStarted) / 1000);
-    if (!this.stopCoolingTimer) {
-      this.log('STOPPING Cooling...');
-      this.stopCoolingTimer = setTimeout(() => {
-        this.log('STOP Cooling');
-        rpio.write(HEAT_RELAY_PIN, rpio.LOW);
-        this.coolingStartTime = null;
-        this.stopCoolingTimer = null;
-      }, waitTime * 1000);
-    } else {
-      this.log(`WARN Cooling is in process of turning off in ${waitTime} second(s)`);
-    }
-  }  
+
+  setupTemperatureCheckInterval() {
+    setInterval(() => {
+      dhtSensor.read(22, TEMPERATURE_SENSOR_PIN, (err, temperature, humidity) => {
+        if (!err) {
+          this.currentTemperature = temperature;
+          this.currentRelativeHumidity = humidity;
+          this.service.setCharacteristic(Characteristic.CurrentTemperature, this.currentTemperature);
+          this.service.setCharacteristic(Characteristic.CurrentRelativeHumidity, this.currentRelativeHumidity);
+        } else {
+          this.log('ERROR Getting temperature');
+        }
+      });
+    }, TEMPERATURE_CHECK_INTERVAL);
+  }
 
 	getServices() {
 		const informationService = new Service.AccessoryInformation();
@@ -123,7 +161,7 @@ class Thermostat {
 			.setCharacteristic(Characteristic.Model, 'Pi Thermostat')
 			.setCharacteristic(Characteristic.SerialNumber, 'Raspberry Pi 3');
 
-    // Off, Heat, Cool, Auto
+    // Off, Heat, Cool
     this.service
 			.getCharacteristic(Characteristic.CurrentHeatingCoolingState)
       .on('get', callback => {
@@ -132,32 +170,11 @@ class Thermostat {
       })
       .on('set', (value, callback) => {
         this.log('SET CurrentHeatingCoolingState from', this.currentHeatingCoolingState, 'to', value);
-        if (this.currentHeatingCoolingState === value) {
-          return callback(null, this.currentHeatingCoolingState);
-        }
-
-        if (this.currentHeatingCoolingState !== Characteristic.CurrentHeatingCoolingState.OFF) {
-          if (this.currentHeatingCoolingState === Characteristic.CurrentHeatingCoolingState.HEAT) {
-            this.turnOffHeating();
-          } else if (this.currentHeatingCoolingState === Characteristic.CurrentHeatingCoolingState.COOL) {
-            this.turnOffCooling();
-          }
-        }
-
         this.currentHeatingCoolingState = value;
-
-        if (this.currentHeatingCoolingState !== Characteristic.CurrentHeatingCoolingState.OFF) {
-          if (this.currentHeatingCoolingState === Characteristic.CurrentHeatingCoolingState.HEAT) {
-            this.turnOnHeating();
-          } else if (this.currentHeatingCoolingState === Characteristic.CurrentHeatingCoolingState.COOL) {
-            this.turnOnCooling();
-          }
-        }
-        
-        callback(null, this.currentHeatingCoolingState);
+        callback(null);
       });
 
-    // Target temperature for Heat and Cool
+    // Off, Heat, Cool, Auto
 		this.service
 			.getCharacteristic(Characteristic.TargetHeatingCoolingState)
 			.on('get', callback => {
@@ -167,31 +184,35 @@ class Thermostat {
 			.on('set', (value, callback) => {
         this.log('SET TargetHeatingCoolingState from', this.targetHeatingCoolingState, 'to', value);
         this.targetHeatingCoolingState = value;
-        if (this.targetHeatingCoolingState === Characteristic.TargetHeatingCoolingState.HEAT && this.currentTemperature < this.targetTemperature) {
-          this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, Characteristic.CurrentHeatingCoolingState.HEAT);
-        } else if (this.targetHeatingCoolingState === Characteristic.TargetHeatingCoolingState.COOL && this.currentTemperature > this.targetTemperature) {
-          this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, Characteristic.CurrentHeatingCoolingState.COOL);
-        } else if (this.targetHeatingCoolingState === Characteristic.TargetHeatingCoolingState.AUTO && this.currentTemperature < this.heatingThresholdTemperature) {
-          this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, Characteristic.CurrentHeatingCoolingState.HEAT);
-        } else if (this.targetHeatingCoolingState === Characteristic.TargetHeatingCoolingState.AUTO && this.currentTemperature > this.coolingThresholdTemperature) {
-          this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, Characteristic.CurrentHeatingCoolingState.COOL);
-        } else {
-          this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, Characteristic.CurrentHeatingCoolingState.OFF);
-        }
-
+        this.updateSystem();
         callback(null);
       });
 
     // Current Temperature
 		this.service
-			.getCharacteristic(Characteristic.CurrentTemperature)
+      .getCharacteristic(Characteristic.CurrentTemperature)
+			.setProps({
+				minValue: this.minTemp,
+				maxValue: this.maxTemp,
+				minStep: 1
+			})
 			.on('get', callback => {
         this.log('CurrentTemperature:', this.currentTemperature);
         callback(null, this.currentTemperature);
+      })
+      .on('set', (value, callback) => {
+        this.updateSystem();
+        callback(null);
       });
 
+    // Target Temperature
 		this.service
-			.getCharacteristic(Characteristic.TargetTemperature)
+      .getCharacteristic(Characteristic.TargetTemperature)
+			.setProps({
+				minValue: this.minTemp,
+				maxValue: this.maxTemp,
+				minStep: 1
+			})
 			.on('get', callback => {
         this.log('TargetTemperature:', this.targetTemperature);
         callback(null, this.targetTemperature);
@@ -199,7 +220,7 @@ class Thermostat {
 			.on('set', (value, callback) => {
         this.log('SET TargetTemperature from', this.targetTemperature, 'to', value);
         this.targetTemperature = value;
-        this.service.setCharacteristic(Characteristic.TargetHeatingCoolingState, this.targetHeatingCoolingState);
+        this.updateSystem();
         callback(null);
       });
 
@@ -255,20 +276,6 @@ class Thermostat {
       .on('get', callback => {
         callback(null, this.name);
       });
-
-		this.service.getCharacteristic(Characteristic.CurrentTemperature)
-			.setProps({
-				minValue: this.minTemp,
-				maxValue: this.maxTemp,
-				minStep: 1
-			});
-
-    this.service.getCharacteristic(Characteristic.TargetTemperature)
-			.setProps({
-				minValue: this.minTemp,
-				maxValue: this.maxTemp,
-				minStep: 1
-			});
 
 		return [informationService, this.service];
 	}
