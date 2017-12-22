@@ -7,8 +7,15 @@
     "node": ">=6.12.2",
     "homebridge": ">=0.4.33"
   },
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/ankurp/homebridge-pi-thermostat.git"
+  },
   "keywords": [
-    "homebridge-plugin"
+    "homebridge-plugin",
+    "thermostat",
+    "raspberry-pi",
+    "homebridge"
   ],
   "scripts": {
     "lint": "eslint ."
