@@ -17,6 +17,7 @@
       "coolRelayPin": 12,
       "temperatureSensorPin": 4,
       "minimumOnOffTime": 60000,
+      "minimumOffOnDelay": 15000,
       "temperatureCheckInterval": 10000
     }
   ],
