@@ -63,3 +63,11 @@ The interval for checking the temperature of the room can also be set and defaul
 ```json
 "temperatureCheckInterval": 10000
 ```
+
+## Screenshots
+
+![Auto Setting](https://user-images.githubusercontent.com/498669/34306432-116a3cfc-e711-11e7-9fae-6662bd781fde.PNG)
+![Auto Setting Temperature](https://user-images.githubusercontent.com/498669/34306435-14f0e088-e711-11e7-88e5-6803eff486f4.PNG)
+![Heat Setting Temperature](https://user-images.githubusercontent.com/498669/34306426-0ddd1636-e711-11e7-9f1d-2f39141eadf2.PNG)
+![Info Screen Part 1](https://user-images.githubusercontent.com/498669/34306428-0f9f2f04-e711-11e7-87c9-6c3b9b7e88fe.PNG)
+![Info Screen Part 2](https://user-images.githubusercontent.com/498669/34306425-0c499448-e711-11e7-957b-ce92402b4d49.PNG)
