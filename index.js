@@ -135,6 +135,10 @@ class Thermostat {
         this.turnOnSystem(Characteristic.CurrentHeatingCoolingState.HEAT);
       } else if (this.shouldTurnOnCooling) {
         this.turnOnSystem(Characteristic.CurrentHeatingCoolingState.COOL);
+      } else if (this.startSystemTimer) {
+        this.log(`CLEARING ${this.currentlyRunning} Turn On instruction`);
+        clearTimeout(this.startSystemTimer);
+        this.startSystemTimer = null;
       }
     } else if (this.currentHeatingCoolingState !== Characteristic.CurrentHeatingCoolingState.OFF
         && this.targetHeatingCoolingState === Characteristic.TargetHeatingCoolingState.OFF) {
@@ -149,10 +153,10 @@ class Thermostat {
         this.turnOffSystem();
       }
     } else {
-      this.log('CLEARING Turn on instruction...');
       if (this.startSystemTimer) {
+        this.log('CLEARING Turn On instruction');
         clearTimeout(this.startSystemTimer);
-        this.startSystemTimer = null;  
+        this.startSystemTimer = null;
       }
     }
   }
