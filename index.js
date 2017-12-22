@@ -90,6 +90,18 @@ class Thermostat {
     }
   }
 
+  clearTurnOnInstruction() {
+    this.log('CLEARING Turn On instruction');
+    clearTimeout(this.startSystemTimer);
+    this.startSystemTimer = null;
+  }
+
+  clearTurnOffInstruction() {
+    this.log('RESUMING Turn off instruction cleared');
+    clearTimeout(this.stopSystemTimer);
+    this.stopSystemTimer = null;
+  }
+
   turnOnSystem(systemToTurnOn) {
     if (this.currentHeatingCoolingState === Characteristic.CurrentHeatingCoolingState.OFF) {
       if (!this.startSystemTimer) {
@@ -107,9 +119,7 @@ class Thermostat {
     } else if (this.currentHeatingCoolingState !== systemToTurnOn) {
       this.turnOffSystem();
     } else if (this.currentHeatingCoolingState === systemToTurnOn && this.stopSystemTimer) {
-      this.log(`RESUMING ${this.systemStateName(systemToTurnOn)} and Turn off instruction cleared`);
-      clearTimeout(this.stopSystemTimer);
-      this.stopSystemTimer = null;
+      this.clearTurnOffInstruction();
     }
   }
   
@@ -136,9 +146,7 @@ class Thermostat {
       } else if (this.shouldTurnOnCooling) {
         this.turnOnSystem(Characteristic.CurrentHeatingCoolingState.COOL);
       } else if (this.startSystemTimer) {
-        this.log(`CLEARING ${this.currentlyRunning} Turn On instruction`);
-        clearTimeout(this.startSystemTimer);
-        this.startSystemTimer = null;
+        this.clearTurnOnInstruction();
       }
     } else if (this.currentHeatingCoolingState !== Characteristic.CurrentHeatingCoolingState.OFF
         && this.targetHeatingCoolingState === Characteristic.TargetHeatingCoolingState.OFF) {
@@ -152,12 +160,8 @@ class Thermostat {
       } else {
         this.turnOffSystem();
       }
-    } else {
-      if (this.startSystemTimer) {
-        this.log('CLEARING Turn On instruction');
-        clearTimeout(this.startSystemTimer);
-        this.startSystemTimer = null;
-      }
+    } else if (this.startSystemTimer) {
+      this.clearTurnOnInstruction();
     }
   }
 
