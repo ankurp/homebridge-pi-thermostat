@@ -24,7 +24,7 @@
   "license": "ISC",
   "dependencies": {
     "node-dht-sensor": "0.0.33",
-    "rpio": "^0.9.20"
+    "rpi-gpio": "^0.9.1"
   },
   "devDependencies": {
     "eslint": "^4.13.1",
