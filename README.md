@@ -21,8 +21,9 @@ Just add the following config to your homebridge config file located at this pat
       "heatRelayPin": 21,
       "coolRelayPin": 20,
       "temperatureSensorPin": 4,
-      "minimumOnOffTime": 80000,
-      "minimumOffOnDelay": 15000,
+      "minimumSystemRunTime": 120000,
+      "blowerTurnOffTime": 80000,
+      "startDelay": 10000,
       "temperatureCheckInterval": 10000
     }
   ],
