@@ -3,6 +3,8 @@ const dhtSensor = require('node-dht-sensor');
 gpio.setMode(gpio.MODE_BCM);
 
 let Service, Characteristic, HeatingCoolingStateToRelayPin;
+const OFF = true;
+const ON = false;
 
 module.exports = function(homebridge) {
   Service = homebridge.hap.Service;
@@ -17,10 +19,10 @@ class Thermostat {
     this.maxTemperature = config.maxTemperature || 30;
     this.minTemperature = config.minTemperature || 0;
     this.fanRelayPin = config.fanRelayPin || 26;
-    this.heatRelayPin = config.heatRelayPin || 27;
-    this.coolRelayPin = config.coolRelayPin || 28;
+    this.heatRelayPin = config.heatRelayPin || 21;
+    this.coolRelayPin = config.coolRelayPin || 20;
     this.temperatureSensorPin = config.temperatureSensorPin || 4;
-    this.minimumOnOffTime = config.minimumOnOffTime || 60000; // In milliseconds
+    this.minimumOnOffTime = config.minimumOnOffTime || 80000; // In milliseconds
     this.minimumOffOnDelay = config.minimumOffOnDelay || 15000; // In milliseconds
     this.temperatureCheckInterval = config.temperatureCheckInterval || 10000; // In milliseconds
 
@@ -42,7 +44,7 @@ class Thermostat {
 
     //Characteristic.TemperatureDisplayUnits.CELSIUS = 0;
     //Characteristic.TemperatureDisplayUnits.FAHRENHEIT = 1;
-    this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
+    this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.FAHRENHEIT;
 
     // The value property of CurrentHeatingCoolingState must be one of the following:
     //Characteristic.CurrentHeatingCoolingState.OFF = 0;
@@ -97,45 +99,32 @@ class Thermostat {
     this.startSystemTimer = null;
   }
 
-  clearTurnOffInstruction() {
-    this.log('RESUMING Turn off instruction cleared');
-    clearTimeout(this.stopSystemTimer);
-    this.stopSystemTimer = null;
-  }
-
   turnOnSystem(systemToTurnOn) {
     if (this.currentHeatingCoolingState === Characteristic.CurrentHeatingCoolingState.OFF) {
       if (!this.startSystemTimer) {
-        const waitTime = Math.floor(this.minimumOffOnDelay / 1000);
-        this.log(`STARTING ${this.systemStateName(systemToTurnOn)} in ${waitTime} second(s)`);
+        this.log(`STARTING ${this.systemStateName(systemToTurnOn)} in ${this.minimumOffOnDelay / 1000} second(s)`);
         this.startSystemTimer = setTimeout(() => {
           this.log(`START ${this.systemStateName(systemToTurnOn)}`);
-          gpio.write(HeatingCoolingStateToRelayPin[systemToTurnOn], false);
+          gpio.write(HeatingCoolingStateToRelayPin[systemToTurnOn], ON);
           this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, systemToTurnOn);
-          this.startSystemTimer = null;
         }, this.minimumOffOnDelay);
       } else {
         this.log(`STARTING ${this.systemStateName(systemToTurnOn)} soon...`);
       }
     } else if (this.currentHeatingCoolingState !== systemToTurnOn) {
       this.turnOffSystem();
-    } else if (this.currentHeatingCoolingState === systemToTurnOn && this.stopSystemTimer) {
-      this.clearTurnOffInstruction();
     }
   }
 
   turnOffSystem() {
-    const waitTime = Math.floor(this.minimumOnOffTime / 1000);
     if (!this.stopSystemTimer) {
-      this.log(`STOPPING ${this.currentlyRunning} in ${waitTime} second(s)`);
+      this.log(`STOP ${this.currentlyRunning} | Blower will turn off in ${this.minimumOnOffTime / 1000} second(s)`);
+      gpio.write(HeatingCoolingStateToRelayPin[this.currentHeatingCoolingState], OFF);
       this.stopSystemTimer = setTimeout(() => {
-        this.log(`STOP ${this.currentlyRunning}`);
-        gpio.write(HeatingCoolingStateToRelayPin[this.currentHeatingCoolingState], true);
-        this.stopSystemTimer = null;
         this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, Characteristic.CurrentHeatingCoolingState.OFF);
-      }, waitTime * 1000);
+      }, this.minimumOnOffTime);
     } else {
-      this.log(`STOPPING ${this.currentlyRunning} soon...`);
+      this.log(`INFO ${this.currentlyRunning} is stopped. Blower will turn off soon...`);
     }
   }
 
@@ -199,6 +188,11 @@ class Thermostat {
       .on('set', (value, callback) => {
         this.log('SET CurrentHeatingCoolingState from', this.currentHeatingCoolingState, 'to', value);
         this.currentHeatingCoolingState = value;
+        if (this.currentHeatingCoolingState === Characteristic.CurrentHeatingCoolingState.OFF) {
+          this.stopSystemTimer = null;
+        } else {
+          this.startSystemTimer = null;
+        }
         callback(null);
       });
 
