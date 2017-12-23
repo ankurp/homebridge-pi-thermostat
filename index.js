@@ -39,24 +39,24 @@ class Thermostat {
 
     this.heatingThresholdTemperature = 18;
     this.coolingThresholdTemperature = 24;
-      
+
     //Characteristic.TemperatureDisplayUnits.CELSIUS = 0;
     //Characteristic.TemperatureDisplayUnits.FAHRENHEIT = 1;
     this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
-  
+
     // The value property of CurrentHeatingCoolingState must be one of the following:
     //Characteristic.CurrentHeatingCoolingState.OFF = 0;
     //Characteristic.CurrentHeatingCoolingState.HEAT = 1;
     //Characteristic.CurrentHeatingCoolingState.COOL = 2;
     this.currentHeatingCoolingState = Characteristic.CurrentHeatingCoolingState.OFF;
-  
+
     // The value property of TargetHeatingCoolingState must be one of the following:
     //Characteristic.TargetHeatingCoolingState.OFF = 0;
     //Characteristic.TargetHeatingCoolingState.HEAT = 1;
     //Characteristic.TargetHeatingCoolingState.COOL = 2;
     //Characteristic.TargetHeatingCoolingState.AUTO = 3;
     this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.OFF;
-  
+
     this.service = new Service.Thermostat(this.name);
 
     this.setupTemperatureCheckInterval();
@@ -111,9 +111,9 @@ class Thermostat {
         this.startSystemTimer = setTimeout(() => {
           this.log(`START ${this.systemStateName(systemToTurnOn)}`);
           gpio.write(HeatingCoolingStateToRelayPin[systemToTurnOn], false);
-          this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, systemToTurnOn);  
+          this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, systemToTurnOn);
           this.startSystemTimer = null;
-        }, this.minimumOffOnDelay);  
+        }, this.minimumOffOnDelay);
       } else {
         this.log(`STARTING ${this.systemStateName(systemToTurnOn)} soon...`);
       }
@@ -123,7 +123,7 @@ class Thermostat {
       this.clearTurnOffInstruction();
     }
   }
-  
+
   turnOffSystem() {
     const waitTime = Math.floor(this.minimumOnOffTime / 1000);
     if (!this.stopSystemTimer) {
