@@ -29,9 +29,9 @@ class Thermostat {
       [Characteristic.CurrentHeatingCoolingState.COOL]: this.coolRelayPin
     };
 
-    gpio.open(this.fanRelayPin, gpio.DIR_HIGH);
-    gpio.open(this.heatRelayPin, gpio.DIR_HIGH);
-    gpio.open(this.coolRelayPin, gpio.DIR_HIGH);
+    gpio.setup(this.fanRelayPin, gpio.DIR_HIGH);
+    gpio.setup(this.heatRelayPin, gpio.DIR_HIGH);
+    gpio.setup(this.coolRelayPin, gpio.DIR_HIGH);
 
     this.currentTemperature = 21;
     this.currentRelativeHumidity = 50;
