@@ -1,5 +1,6 @@
-const rpio = require('rpio');
+const gpio = require('rpi-gpio');
 const dhtSensor = require('node-dht-sensor');
+gpio.setMode(gpio.MODE_BCM);
 
 let Service, Characteristic, HeatingCoolingStateToRelayPin;
 
@@ -28,9 +29,9 @@ class Thermostat {
       [Characteristic.CurrentHeatingCoolingState.COOL]: this.coolRelayPin
     };
 
-    rpio.open(this.fanRelayPin, rpio.OUTPUT, rpio.LOW);
-    rpio.open(this.heatRelayPin, rpio.OUTPUT, rpio.LOW);
-    rpio.open(this.coolRelayPin, rpio.OUTPUT, rpio.LOW);
+    gpio.open(this.fanRelayPin, gpio.DIR_HIGH);
+    gpio.open(this.heatRelayPin, gpio.DIR_HIGH);
+    gpio.open(this.coolRelayPin, gpio.DIR_HIGH);
 
     this.currentTemperature = 21;
     this.currentRelativeHumidity = 50;
@@ -109,7 +110,7 @@ class Thermostat {
         this.log(`STARTING ${this.systemStateName(systemToTurnOn)} in ${waitTime} second(s)`);
         this.startSystemTimer = setTimeout(() => {
           this.log(`START ${this.systemStateName(systemToTurnOn)}`);
-          rpio.write(HeatingCoolingStateToRelayPin[systemToTurnOn], rpio.HIGH);
+          gpio.write(HeatingCoolingStateToRelayPin[systemToTurnOn], false);
           this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, systemToTurnOn);  
           this.startSystemTimer = null;
         }, this.minimumOffOnDelay);  
@@ -129,7 +130,7 @@ class Thermostat {
       this.log(`STOPPING ${this.currentlyRunning} in ${waitTime} second(s)`);
       this.stopSystemTimer = setTimeout(() => {
         this.log(`STOP ${this.currentlyRunning}`);
-        rpio.write(HeatingCoolingStateToRelayPin[this.currentHeatingCoolingState], rpio.LOW);
+        gpio.write(HeatingCoolingStateToRelayPin[this.currentHeatingCoolingState], true);
         this.stopSystemTimer = null;
         this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, Characteristic.CurrentHeatingCoolingState.OFF);
       }, waitTime * 1000);
