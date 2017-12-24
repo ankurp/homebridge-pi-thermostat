@@ -16,7 +16,7 @@
       "heatRelayPin": 21,
       "coolRelayPin": 20,
       "temperatureSensorPin": 4,
-      "minimumSystemRunTime": 120000,
+      "minimumOnOffTime": 120000,
       "blowerTurnOffTime": 80000,
       "startDelay": 10000,
       "temperatureCheckInterval": 10000
