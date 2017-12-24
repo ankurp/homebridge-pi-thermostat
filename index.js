@@ -22,7 +22,7 @@ class Thermostat {
     this.heatRelayPin = config.heatRelayPin || 21;
     this.coolRelayPin = config.coolRelayPin || 20;
     this.temperatureSensorPin = config.temperatureSensorPin || 4;
-    this.minimumSystemRunTime = config.minimumSystemRunTime || 120000; // In milliseconds
+    this.minimumOnOffTime = config.minimumOnOffTime || 120000; // In milliseconds
     this.blowerTurnOffTime = config.blowerTurnOffTime || 80000; // In milliseconds
     this.startDelay = config.startDelay || 10000; // In milliseconds
     this.temperatureCheckInterval = config.temperatureCheckInterval || 10000; // In milliseconds
@@ -134,8 +134,8 @@ class Thermostat {
   }
 
   updateSystem() {
-    if (this.timeSinceLastHeatingCoolingStateChange < this.minimumSystemRunTime) {
-      const waitTime = this.minimumSystemRunTime - this.timeSinceLastHeatingCoolingStateChange;
+    if (this.timeSinceLastHeatingCoolingStateChange < this.minimumOnOffTime) {
+      const waitTime = this.minimumOnOffTime - this.timeSinceLastHeatingCoolingStateChange;
       this.log(`INFO Need to wait ${waitTime / 1000} second(s) before state changes.`);
       return;
     }
@@ -227,7 +227,7 @@ class Thermostat {
       .setProps({
         minValue: this.minTemperature,
         maxValue: this.maxTemperature,
-        minStep: 1
+        minStep: 0.5
       })
       .on('get', callback => {
         this.log('CurrentTemperature:', this.currentTemperature);
@@ -244,7 +244,7 @@ class Thermostat {
       .setProps({
         minValue: this.minTemperature,
         maxValue: this.maxTemperature,
-        minStep: 1
+        minStep: 0.5
       })
       .on('get', callback => {
         this.log('TargetTemperature:', this.targetTemperature);
