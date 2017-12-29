@@ -2,8 +2,28 @@
 
 This is a [homebridge](https://github.com/nfarina/homebridge) plugin to make a Raspberry Pi connected with a Relay Board and DHT22 Temperature and Humidity Sensor into a smart thermostat that can be controlled via the Home app on iOS using Homekit.
 
-Just add the following config to your homebridge config file located at this path `~/.homebridge/config.json`.
+## [Guide](https://blog.encoredevlabs.com/feature/thermostat/raspberrypi/home-automation/homekit/homebridge/2017/12/25/homekit-pi-thermostat.html)
 
+For those who want to create their own thermostat using Raspberry Pi, [here is a blog post](https://blog.encoredevlabs.com/feature/thermostat/raspberrypi/home-automation/homekit/homebridge/2017/12/25/homekit-pi-thermostat.html) that goes through the details of where to buy the parts, how to assemble it and what software to install to get this to work. 
+
+## Installation
+* Install nodejs and other dependencies for homebridge to work
+```sh
+curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+sudo apt-get install -y nodejs libavahi-compat-libdnssd-dev
+```
+* Install [BCM2835](http://www.airspayce.com/mikem/bcm2835/) for temperature sensor to work
+```sh
+wget http://www.airspayce.com/mikem/bcm2835/bcm2835-1.52.tar.gz
+tar zxvf bcm2835-1.52.tar.gz
+cd bcm2835-1.52
+./configure && make && sudo make check && sudo make install
+```
+* Install homebridge and this plugin
+```sh
+sudo npm install -g --unsafe-perm homebridge homebridge-pi-thermostat
+```
+* Add the accessory config to your homebridge config file located at this path `~/.homebridge/config.json`.
 ```json
 {
   "bridge": {
@@ -30,6 +50,7 @@ Just add the following config to your homebridge config file located at this pat
   "platforms": []
 }
 ```
+* Start it up by running `homebridge` command.
 
 ## Configuration
 
