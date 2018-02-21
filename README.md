@@ -1,5 +1,7 @@
 # Homebridge Pi Thermostat Plugin
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/ankurp/homebridge-pi-thermostat.svg)](https://greenkeeper.io/)
+
 This is a [homebridge](https://github.com/nfarina/homebridge) plugin to make a Raspberry Pi connected with a Relay Board and DHT22 Temperature and Humidity Sensor into a smart thermostat that can be controlled via the Home app on iOS using Homekit.
 
 ![Raspberry Pi Thermostat showing Wiring](https://user-images.githubusercontent.com/498669/34429545-9cbd215a-ec27-11e7-8065-ccb0f43baa75.JPG)
