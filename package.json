@@ -23,12 +23,12 @@
   "author": "Ankur Patel <ankur.patel@ymail.com> (https://www.encoredevlabs.com)",
   "license": "ISC",
   "dependencies": {
-    "node-dht-sensor": "0.0.33",
+    "node-dht-sensor": "0.0.34",
     "rpi-gpio": "^0.9.1"
   },
   "devDependencies": {
     "eslint": "^4.13.1",
-    "eslint-plugin-node": "^5.2.1",
+    "eslint-plugin-node": "^6.0.0",
     "eslint-plugin-standard": "^3.0.1"
   }
 }
