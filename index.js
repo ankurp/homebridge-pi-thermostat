@@ -16,7 +16,7 @@ class Thermostat {
   constructor(log, config) {
     this.log = log;
     this.name = config.name;
-    this.maxTemperature = config.maxTemperature || 30;
+    this.maxTemperature = config.maxTemperature || 35;
     this.minTemperature = config.minTemperature || 0;
     this.fanRelayPin = config.fanRelayPin || 26;
     this.heatRelayPin = config.heatRelayPin || 21;
@@ -227,7 +227,7 @@ class Thermostat {
       .setProps({
         minValue: this.minTemperature,
         maxValue: this.maxTemperature,
-        minStep: 0.5
+        minStep: 0.1
       })
       .on('get', callback => {
         this.log('CurrentTemperature:', this.currentTemperature);
@@ -244,7 +244,7 @@ class Thermostat {
       .setProps({
         minValue: this.minTemperature,
         maxValue: this.maxTemperature,
-        minStep: 0.5
+        minStep: 0.1
       })
       .on('get', callback => {
         this.log('TargetTemperature:', this.targetTemperature);
@@ -281,6 +281,11 @@ class Thermostat {
     // Auto max temperature
     this.service
       .getCharacteristic(Characteristic.CoolingThresholdTemperature)
+      .setProps({
+        minValue: this.minTemperature,
+        maxValue: this.maxTemperature,
+        minStep: 0.1
+      })
       .on('get', callback => {
         this.log('CoolingThresholdTemperature:', this.coolingThresholdTemperature);
         callback(null, this.coolingThresholdTemperature);
@@ -294,6 +299,11 @@ class Thermostat {
     // Auto min temperature
     this.service
       .getCharacteristic(Characteristic.HeatingThresholdTemperature)
+      .setProps({
+        minValue: this.minTemperature,
+        maxValue: this.maxTemperature,
+        minStep: 0.1
+      })
       .on('get', callback => {
         this.log('HeatingThresholdTemperature:', this.heatingThresholdTemperature);
         callback(null, this.heatingThresholdTemperature);
