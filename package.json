@@ -1,6 +1,6 @@
 {
   "name": "homebridge-pi-thermostat",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Hombridge plugin for thermostat",
   "main": "index.js",
   "engines": {
