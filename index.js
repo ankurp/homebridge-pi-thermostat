@@ -68,11 +68,7 @@ class Thermostat {
     this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.OFF;
 
     this.thermostatService = new Service.Thermostat(this.name);
-    this.fanService = new Service.Fan(this.name);
-
-    gpio.write(this.fanRelayPin, OFF);
-    gpio.write(this.heatRelayPin, OFF);
-    gpio.write(this.coolRelayPin, OFF);
+    this.fanService = new Service.Fan(`${this.name} Fan`);
 
     setInterval(() => this.readTemperatureFromSensor(), this.temperatureCheckInterval);
   }
