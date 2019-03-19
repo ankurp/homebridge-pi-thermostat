@@ -23,7 +23,7 @@ class Thermostat {
     this.log = log;
     this.name = config.name;
     this.maxTemperature = config.maxTemperature || 35;
-    this.minTemperature = config.minTemperature || 0;
+    this.minTemperature = config.minTemperature || 16;
     this.fanRelayPin = config.fanRelayPin || 26;
     this.heatRelayPin = config.heatRelayPin || 21;
     this.coolRelayPin = config.coolRelayPin || 20;
@@ -39,9 +39,9 @@ class Thermostat {
       [Characteristic.CurrentHeatingCoolingState.COOL]: this.coolRelayPin
     };
 
-    gpio.setup(this.fanRelayPin, gpio.DIR_HIGH);
-    gpio.setup(this.heatRelayPin, gpio.DIR_HIGH);
-    gpio.setup(this.coolRelayPin, gpio.DIR_HIGH);
+    gpio.setup(this.fanRelayPin, gpio.DIR_LOW);
+    gpio.setup(this.heatRelayPin, gpio.DIR_LOW);
+    gpio.setup(this.coolRelayPin, gpio.DIR_LOW);
 
     this.currentTemperature = 21;
     this.currentRelativeHumidity = 50;
