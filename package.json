@@ -23,7 +23,7 @@
   "author": "Ankur Patel <ankur.patel@ymail.com> (https://www.encoredevlabs.com)",
   "license": "ISC",
   "dependencies": {
-    "node-dht-sensor": "0.0.33",
+    "node-dht-sensor": "0.4.3",
     "rpi-gpio": "2.1.7"
   },
   "devDependencies": {
