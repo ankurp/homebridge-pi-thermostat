@@ -20,15 +20,15 @@
   "scripts": {
     "lint": "eslint ."
   },
-  "author": "Ankur Patel <ankur.patel@ymail.com> (https://www.encoredevlabs.com)",
+  "author": "Sergio",
   "license": "ISC",
   "dependencies": {
     "node-dht-sensor": "0.4.3",
     "rpi-gpio": "2.1.7"
   },
   "devDependencies": {
-    "eslint": "^4.13.1",
-    "eslint-plugin-node": "^5.2.1",
-    "eslint-plugin-standard": "^3.0.1"
+    "eslint": "7.9.0",
+    "eslint-plugin-node": "11.1.0",
+    "eslint-plugin-standard": "4.0.1"
   }
 }
