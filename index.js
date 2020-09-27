@@ -25,8 +25,8 @@ class Thermostat {
     this.maxTemperature = config.maxTemperature || 35;
     this.minTemperature = config.minTemperature || 0;
     this.fanRelayPin = config.fanRelayPin || 26;
-    this.heatRelayPin = config.heatRelayPin || 20;
-    this.coolRelayPin = config.coolRelayPin || 21;
+    this.heatRelayPin = config.heatRelayPin || 21;
+    this.coolRelayPin = config.coolRelayPin || 20;
     this.dhtSensorType = config.dhtSensorType || 22;
     this.temperatureSensorPin = config.temperatureSensorPin || 4;
     this.minimumOnOffTime = config.minimumOnOffTime || 120000; // In milliseconds
