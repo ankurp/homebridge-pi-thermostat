@@ -20,7 +20,7 @@
   "scripts": {
     "lint": "eslint ."
   },
-  "author": "Sergio",
+ "author": "Ankur Patel <ankur.patel@ymail.com> (https://www.encoredevlabs.com)",
   "license": "ISC",
   "dependencies": {
     "node-dht-sensor": "0.4.3",
